@@ -59,6 +59,7 @@ while True:
     new_frame = np.zeros((500, 500, 3), np.uint8)
     gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     faces=detector(gray)
+    # landmarks=np.array()
     for face in faces:
 
 # eye detection
@@ -81,25 +82,22 @@ while True:
 
 #gaze Detection
 
-    gaze_ratio_left_eye = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks)
-    gaze_ratio_right_eye = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks)
-    gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
+        gaze_ratio_left_eye = get_gaze_ratio([36, 37, 38, 39, 40, 41],landmarks)
+        gaze_ratio_right_eye = get_gaze_ratio([42, 43, 44, 45, 46, 47],landmarks)
+        gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
 
 
-    cv2.putText(frame,str(gaze_ratio),(50,200),font,2,255,3)
-    if 0.5 <= gaze_ratio < 1.5:  # Adjust these thresholds based on your environment
-        cv2.putText(frame, "CENTER", (50, 100), font, 2, (0, 255, 0), 3)
-        new_frame[:] = (0, 255, 0)  # Green for CENTER gaze
-    elif gaze_ratio < 0.5:  # Looking to the RIGHT
-        cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
-        new_frame[:] = (0, 0, 255)  # Red for RIGHT gaze
-    elif 1.5<=gaze_ratio<=3:  # gaze_ratio > 1.1, Looking to the LEFT
-        cv2.putText(frame, "LEFT", (50, 100), font, 2, (255, 0, 0), 3)
-        new_frame[:] = (255, 0, 0)  # Blue for LEFT gaze
-    else:
-        cv2.putText(frame, "unknown", (50, 100), font, 2, (255, 255, 255), 3)  
-        new_frame[:]=(255,255,255)     #white for unknown gaze
-        # cv2.putText(frame,str(gaze_ratio),(50,100),font,2,(0,0,255),3)
+        cv2.putText(frame,str(gaze_ratio),(50,200),font,2,255,3)
+        if gaze_ratio < 0.6:  # Looking to the RIGHT
+            cv2.putText(frame, "RIGHT", (50, 100), font, 2, (0, 0, 255), 3)
+            new_frame[:] = (0, 0, 255)  # Red for RIGHT gaze
+        elif 1.6<=gaze_ratio<4.5:  # gaze_ratio > 1.1, Looking to the LEFT
+            cv2.putText(frame, "LEFT", (50, 100), font, 2, (255, 0, 0), 3)
+            new_frame[:] = (255, 0, 0)  # Blue for LEFT gaze
+        else:
+            cv2.putText(frame, "CENTER", (50, 100), font, 2, (0, 255, 0), 3)
+            new_frame[:] = (0, 255, 0)  # Green for CENTER gaze
+            # cv2.putText(frame,str(gaze_ratio),(50,100),font,2,(0,0,255),3)
         # # cv2.putText(frame,str(left_side_white),(50,100),font,2,(0,0,255),3)
         # # cv2.putText(frame,str(right_side_white),(50,150),font,2,(0,0,255),3)
 
@@ -114,7 +112,7 @@ while True:
 
     cv2.imshow("Student Attention Analysis System",frame)
     cv2.imshow("Student Attention Analysis",new_frame)
-    key=cv2.waitKey(1)
+    key=cv2.waitKey(100)
     if key==27:
         break
 cap.release()
