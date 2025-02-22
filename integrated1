@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import dlib
 from deepface import DeepFace
-import time
 
 # Initialize webcam
 cap = cv2.VideoCapture(0)
@@ -11,11 +10,6 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 font = cv2.FONT_HERSHEY_SIMPLEX
-
-# Variables for tracking interest
-interest_scores = []
-recording = False
-start_time = None
 
 def midpoint(p1, p2):
     return ((p1.x + p2.x) // 2, (p1.y + p2.y) // 2)
@@ -36,31 +30,10 @@ def get_gaze_ratio(eye_points, facial_landmarks, gray):
     gaze_ratio = left_side_white / right_side_white if right_side_white != 0 else 1.0
     return gaze_ratio
 
-def calculate_average_interest():
-    if interest_scores:
-        avg_interest = sum(interest_scores) / len(interest_scores)
-        print(f"Average Interest Level: {avg_interest:.2f} out of 100")
-    else:
-        print("No data recorded.")
-
-def start_recording():
-    global recording, start_time, interest_scores
-    recording = True
-    start_time = time.time()
-    interest_scores = []
-    print("Recording started...")
-
-def stop_recording():
-    global recording
-    recording = False
-    print("Recording stopped.")
-    calculate_average_interest()
-
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-    
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = detector(gray)
     
@@ -81,25 +54,15 @@ while True:
         emotion = analysis[0]['dominant_emotion'] if analysis else "Unknown"
         
         interested = gaze_text == "Gaze: CENTER" and emotion in ["happy", "surprise", "neutral"]
-        attention_score = 100 if interested else 50 if gaze_text == "Gaze: CENTER" else 0
-        
-        if recording:
-            interest_scores.append(attention_score)
-        
         status_text, status_color = ("Attention: Interested", (0, 255, 0)) if interested else ("Attention: Not Interested", (0, 0, 255))
         
         cv2.putText(frame, gaze_text, (50, 50), font, 0.8, gaze_color, 2)
         cv2.putText(frame, f"Emotion: {emotion}", (50, 100), font, 0.8, (255, 255, 255), 2)
-        cv2.putText(frame, f"Attention Score: {attention_score}", (50, 150), font, 0.8, (255, 255, 0), 2)
-        cv2.putText(frame, status_text, (50, 200), font, 0.8, status_color, 2)
+        cv2.putText(frame, status_text, (50, 150), font, 0.8, status_color, 2)
     
     cv2.imshow("Student Attention Analysis", frame)
-    key = cv2.waitKey(100) & 0xFF
-    if key == ord('s'):
-        start_recording()
-    elif key == ord('e'):
-        stop_recording()
-    elif key == 27:
+    
+    if cv2.waitKey(100) & 0xFF == 27:
         break
 
 cap.release()
