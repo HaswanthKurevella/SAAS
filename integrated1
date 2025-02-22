@@ -45,26 +45,32 @@ while True:
         gaze_ratio_right = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks, gray)
         gaze_ratio = (gaze_ratio_left + gaze_ratio_right) / 2
         
+        gaze_score = 50
         if gaze_ratio < 0.6:
             gaze_text, gaze_color = "Gaze: RIGHT", (0, 0, 255)
+            gaze_score = 30
         elif 1.6 <= gaze_ratio < 4.5:
             gaze_text, gaze_color = "Gaze: LEFT", (255, 0, 0)
+            gaze_score = 30
         else:
             gaze_text, gaze_color = "Gaze: CENTER", (0, 255, 0)
+            gaze_score = 50
         
         analysis = DeepFace.analyze(frame, actions=['emotion'], enforce_detection=False)
         emotion = analysis[0]['dominant_emotion'] if analysis else "Unknown"
         
-        attention_score = 1 if emotion in ["happy", "surprise", "neutral"] else 0
+        emotion_score = 50 if emotion in ["happy", "surprise", "neutral"] else 20
+        
+        attention_score = (gaze_score + emotion_score) / 100 * 100  # Normalize to 100 scale
         attention_scores.append(attention_score)
         avg_attention = sum(attention_scores[-30:]) / min(len(attention_scores), 30)  # Last 30 frames
         
-        status_text, status_color = ("Attention: Interested", (0, 255, 0)) if attention_score else ("Attention: Not Interested", (0, 0, 255))
+        status_text, status_color = ("Attention: Interested", (0, 255, 0)) if avg_attention >= 60 else ("Attention: Not Interested", (0, 0, 255))
         
         cv2.putText(frame, gaze_text, (50, 50), font, 0.8, gaze_color, 2)
         cv2.putText(frame, f"Emotion: {emotion}", (50, 100), font, 0.8, (255, 255, 255), 2)
         cv2.putText(frame, status_text, (50, 150), font, 0.8, status_color, 2)
-        cv2.putText(frame, f"Attention Score: {avg_attention:.2f}", (50, 200), font, 0.8, (255, 255, 0), 2)
+        cv2.putText(frame, f"Attention Score: {avg_attention:.2f}/100", (50, 200), font, 0.8, (255, 255, 0), 2)
     
     cv2.imshow("Student Attention Analysis", frame)
     
@@ -73,3 +79,4 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+ 
