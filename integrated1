@@ -3,40 +3,42 @@ import numpy as np
 import dlib
 from deepface import DeepFace
 
-# Initialize Video Capture
+# Initialize webcam
 cap = cv2.VideoCapture(0)
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
+font = cv2.FONT_HERSHEY_SIMPLEX
+
+attention_scores = []
+
 def midpoint(p1, p2):
     return ((p1.x + p2.x) // 2, (p1.y + p2.y) // 2)
 
 def get_gaze_ratio(eye_points, facial_landmarks, gray):
-    eye_region = np.array([(facial_landmarks.part(eye_points[i]).x, facial_landmarks.part(eye_points[i]).y) for i in range(6)], np.int32)
+    eye_region = np.array([(facial_landmarks.part(point).x, facial_landmarks.part(point).y) for point in eye_points], np.int32)
     height, width = gray.shape
     mask = np.zeros((height, width), np.uint8)
     cv2.fillPoly(mask, [eye_region], 255)
     eye_patch = cv2.bitwise_and(gray, gray, mask=mask)
-    
     min_x, max_x = np.min(eye_region[:, 0]), np.max(eye_region[:, 0])
     min_y, max_y = np.min(eye_region[:, 1]), np.max(eye_region[:, 1])
     gray_eye = eye_patch[min_y:max_y, min_x:max_x]
     _, threshold_eye = cv2.threshold(gray_eye, 70, 255, cv2.THRESH_BINARY)
     height, width = threshold_eye.shape
-    left_side_white = cv2.countNonZero(threshold_eye[:, :width // 2])
-    right_side_white = cv2.countNonZero(threshold_eye[:, width // 2:])
-    return left_side_white / (right_side_white + 1e-6)
+    left_side_white = cv2.countNonZero(threshold_eye[:, 0:int(width/2)])
+    right_side_white = cv2.countNonZero(threshold_eye[:, int(width/2):width])
+    gaze_ratio = left_side_white / right_side_white if right_side_white != 0 else 9
+    return gaze_ratio
 
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-    
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = detector(gray)
-    engagement_score = 50  # Initial baseline score
-
+    
     for face in faces:
         landmarks = predictor(gray, face)
         gaze_ratio_left = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks, gray)
@@ -44,37 +46,27 @@ while True:
         gaze_ratio = (gaze_ratio_left + gaze_ratio_right) / 2
         
         if gaze_ratio < 0.6:
-            gaze_status = "Looking Right"
-            engagement_score -= 10
-        elif gaze_ratio > 1.6:
-            gaze_status = "Looking Left"
-            engagement_score -= 10
+            gaze_text, gaze_color = "Gaze: RIGHT", (0, 0, 255)
+        elif 1.6 <= gaze_ratio < 4.5:
+            gaze_text, gaze_color = "Gaze: LEFT", (255, 0, 0)
         else:
-            gaze_status = "Looking Forward"
-            engagement_score += 10
+            gaze_text, gaze_color = "Gaze: CENTER", (0, 255, 0)
         
-        cv2.putText(frame, gaze_status, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-    try:
         analysis = DeepFace.analyze(frame, actions=['emotion'], enforce_detection=False)
-        emotion = analysis[0]['dominant_emotion']
+        emotion = analysis[0]['dominant_emotion'] if analysis else "Unknown"
         
-        if emotion in ["happy", "surprise", "neutral"]:
-            status = "Interested"
-            color = (0, 255, 0)
-            engagement_score += 20
-        else:
-            status = "Not Interested"
-            color = (0, 0, 255)
-            engagement_score -= 20
+        attention_score = 1 if emotion in ["happy", "surprise", "neutral"] else 0
+        attention_scores.append(attention_score)
+        avg_attention = sum(attention_scores[-30:]) / min(len(attention_scores), 30)  # Last 30 frames
         
-        cv2.putText(frame, f"Emotion: {emotion}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-        cv2.putText(frame, status, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-    except Exception as e:
-        print("Error in emotion detection:", e)
-
-    cv2.putText(frame, f"Engagement Score: {engagement_score}", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    cv2.imshow("Student Engagement Analysis", frame)
+        status_text, status_color = ("Attention: Interested", (0, 255, 0)) if attention_score else ("Attention: Not Interested", (0, 0, 255))
+        
+        cv2.putText(frame, gaze_text, (50, 50), font, 0.8, gaze_color, 2)
+        cv2.putText(frame, f"Emotion: {emotion}", (50, 100), font, 0.8, (255, 255, 255), 2)
+        cv2.putText(frame, status_text, (50, 150), font, 0.8, status_color, 2)
+        cv2.putText(frame, f"Attention Score: {avg_attention:.2f}", (50, 200), font, 0.8, (255, 255, 0), 2)
+    
+    cv2.imshow("Student Attention Analysis", frame)
     
     if cv2.waitKey(100) & 0xFF == 27:
         break
