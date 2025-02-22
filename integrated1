@@ -11,8 +11,6 @@ predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
-attention_scores = []
-
 def midpoint(p1, p2):
     return ((p1.x + p2.x) // 2, (p1.y + p2.y) // 2)
 
@@ -46,27 +44,21 @@ while True:
         gaze_ratio = (gaze_ratio_left + gaze_ratio_right) / 2
         
         if 0.9 <= gaze_ratio <= 1.2:
-            gaze_text, gaze_color, gaze_score = "Gaze: CENTER", (0, 255, 0), 50
+            gaze_text, gaze_color = "Gaze: CENTER", (0, 255, 0)
         elif gaze_ratio < 0.9:
-            gaze_text, gaze_color, gaze_score = "Gaze: RIGHT", (0, 0, 255), 20
+            gaze_text, gaze_color = "Gaze: RIGHT", (0, 0, 255)
         else:
-            gaze_text, gaze_color, gaze_score = "Gaze: LEFT", (255, 0, 0), 20
+            gaze_text, gaze_color = "Gaze: LEFT", (255, 0, 0)
         
         analysis = DeepFace.analyze(frame, actions=['emotion'], enforce_detection=False)
         emotion = analysis[0]['dominant_emotion'] if analysis else "Unknown"
         
-        emotion_score = 50 if emotion in ["happy", "surprise", "neutral"] else 20
-        
-        attention_score = (gaze_score * 0.7 + emotion_score * 0.3)  # Better balance between gaze and emotion
-        attention_scores.append(attention_score)
-        avg_attention = sum(attention_scores[-30:]) / min(len(attention_scores), 30)  # Last 30 frames
-        
-        status_text, status_color = ("Attention: Interested", (0, 255, 0)) if avg_attention >= 60 else ("Attention: Not Interested", (0, 0, 255))
+        interested = gaze_text == "Gaze: CENTER" and emotion in ["happy", "surprise", "neutral"]
+        status_text, status_color = ("Attention: Interested", (0, 255, 0)) if interested else ("Attention: Not Interested", (0, 0, 255))
         
         cv2.putText(frame, gaze_text, (50, 50), font, 0.8, gaze_color, 2)
         cv2.putText(frame, f"Emotion: {emotion}", (50, 100), font, 0.8, (255, 255, 255), 2)
         cv2.putText(frame, status_text, (50, 150), font, 0.8, status_color, 2)
-        cv2.putText(frame, f"Attention Score: {avg_attention:.2f}/100", (50, 200), font, 0.8, (255, 255, 0), 2)
     
     cv2.imshow("Student Attention Analysis", frame)
     
