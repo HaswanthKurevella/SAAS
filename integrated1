@@ -43,9 +43,9 @@ while True:
         gaze_ratio_right = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks, gray)
         gaze_ratio = (gaze_ratio_left + gaze_ratio_right) / 2
         
-        if 0.9 <= gaze_ratio <= 1.2:
+        if 0.6 <= gaze_ratio <= 1.2:
             gaze_text, gaze_color = "Gaze: CENTER", (0, 255, 0)
-        elif gaze_ratio < 0.9:
+        elif gaze_ratio < 0.6:
             gaze_text, gaze_color = "Gaze: RIGHT", (0, 0, 255)
         else:
             gaze_text, gaze_color = "Gaze: LEFT", (255, 0, 0)
@@ -62,7 +62,7 @@ while True:
     
     cv2.imshow("Student Attention Analysis", frame)
     
-    if cv2.waitKey(100) & 0xFF == 27:
+    if cv2.waitKey(10) & 0xFF == 27:
         break
 
 cap.release()
