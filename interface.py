@@ -11,12 +11,13 @@ class AttentionApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Student Attention Detector")
+        
+        self.status_label = Label(root, text="Status: Idle", font=("Arial", 14))
+        self.status_label.pack(pady=10)
 
         self.video_label = Label(root)
         self.video_label.pack()
 
-        self.status_label = Label(root, text="Status: Idle", font=("Arial", 14))
-        self.status_label.pack(pady=10)
 
         self.start_button = Button(root, text="Start", command=self.start_camera)
         self.start_button.pack(side=tk.LEFT, padx=20, pady=10)
