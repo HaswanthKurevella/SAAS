@@ -36,7 +36,7 @@ The **Student Attention Analysis System** is an AI-driven tool designed to analy
 ### Setup
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/Student-Attention-Analysis.git
+git clone https://github.com/HaswanthKurevella/Student-Attention-Analysis.git
 cd Student-Attention-Analysis
 
 # Install dependencies
